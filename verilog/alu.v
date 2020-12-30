@@ -54,10 +54,11 @@
  *	field is only unique across the instructions that are actually
  *	fed to the ALU.
  */
-module alu(ALUctl, A, B, ALUOut, Branch_Enable);
+module alu(ALUctl, A, B, sign, ALUOut, Branch_Enable);
 	input [6:0]		ALUctl;
 	input [31:0]		A;
 	input [31:0]		B;
+	input 			sign;
 	output reg [31:0]	ALUOut;
 	output reg		Branch_Enable;
 
@@ -86,7 +87,7 @@ module alu(ALUctl, A, B, ALUOut, Branch_Enable);
 			/*
 			 *	SLT (the fields also matches all the other SLT variants)
 			 */
-			`kSAIL_MICROARCHITECTURE_ALUCTL_3to0_SLT:	ALUOut = $signed(A) < $signed(B) ? 32'b1 : 32'b0;
+			`kSAIL_MICROARCHITECTURE_ALUCTL_3to0_SLT:	ALUOut = $signed({A[31]&sign, A}) < $signed({B[31]&sign, B}) ? 32'b1 : 32'b0;
 
 			/*
 			 *	SRL (the fields also matches the other SRL variants)

@@ -49,10 +49,11 @@
 
 
 
-module ALUControl(FuncCode, ALUCtl, Opcode);
+module ALUControl(FuncCode, ALUCtl, Opcode, sign);
 	input [3:0]		FuncCode;
 	input [6:0]		Opcode;
 	output reg [6:0]	ALUCtl;
+	output reg          sign;
 
 	/*
 	 *	TODO:
@@ -64,6 +65,7 @@ module ALUControl(FuncCode, ALUCtl, Opcode);
 
 
 	always @(*) begin
+		sign = 1'b1;
 		case (Opcode)
 			/*
 			 *	LUI, U-Type
@@ -102,10 +104,14 @@ module ALUControl(FuncCode, ALUCtl, Opcode);
 						ALUCtl = 7'b0110110; //BLT conditions
 					3'b101:
 						ALUCtl = 7'b1000110; //BGE conditions
-					3'b110:
+					3'b110: begin
 						ALUCtl = 7'b1010110; //BLTU conditions
-					3'b111:
+						sign   = 1'b0;
+					end
+					3'b111: begin
 						ALUCtl = 7'b1100110; //BGEU conditions
+						sign   = 1'b0;
+					end
 					default:
 						ALUCtl = `kSAIL_MICROARCHITECTURE_ALUCTL_6to0_ILLEGAL;
 				endcase
@@ -121,10 +127,14 @@ module ALUControl(FuncCode, ALUCtl, Opcode);
 						ALUCtl = 7'b0000010; //LH
 					3'b010:
 						ALUCtl = 7'b0000010; //LW
-					3'b100:
+					3'b100: begin
 						ALUCtl = 7'b0000010; //LBU
-					3'b101:
+						sign   = 1'b0;
+					end
+					3'b101: begin
 						ALUCtl = 7'b0000010; //LHU
+						sign   = 1'b0;
+					end
 					default:
 						ALUCtl = `kSAIL_MICROARCHITECTURE_ALUCTL_6to0_ILLEGAL;
 				endcase
@@ -153,8 +163,10 @@ module ALUControl(FuncCode, ALUCtl, Opcode);
 						ALUCtl = 7'b0000010; //ADDI
 					3'b010:
 						ALUCtl = 7'b0000111; //SLTI
-					3'b011:
+					3'b011: begin
 						ALUCtl = 7'b0000111; //SLTIU
+						sign   = 1'b0;
+					end
 					3'b100:
 						ALUCtl = 7'b0001000; //XORI
 					3'b110:
@@ -194,8 +206,10 @@ module ALUControl(FuncCode, ALUCtl, Opcode);
 						ALUCtl = 7'b0000101; //SLL
 					3'b010:
 						ALUCtl = 7'b0000111; //SLT
-					3'b011:
+					3'b011: begin
 						ALUCtl = 7'b0000111; //SLTU
+						sign   = 1'b0;
+					end
 					3'b100:
 						ALUCtl = 7'b0001000; //XOR
 					3'b101:

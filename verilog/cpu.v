@@ -126,6 +126,7 @@ module cpu(
 	wire [31:0]		RegB_AddrFwdFlush_mux_out;
 	wire [31:0]		rdValOut_CSR;
 	wire [3:0]		dataMem_sign_mask;
+	wire 			aluCtl_sign_id;
 
 	/*
 	 *	Execute stage
@@ -138,6 +139,7 @@ module cpu(
 	wire			alu_branch_enable;
 	wire [31:0]		alu_result;
 	wire [31:0]		lui_result;
+	reg 			aluCtl_sign_ex;
 
 	/*
 	 *	Memory access stage
@@ -272,7 +274,8 @@ module cpu(
 	ALUControl alu_control(
 			.Opcode(if_id_out[38:32]),
 			.FuncCode({if_id_out[62], if_id_out[46:44]}),
-			.ALUCtl(alu_ctl)
+			.ALUCtl(alu_ctl),
+			.sign(aluCtl_sign_id)
 		);
 
 	sign_mask_gen sign_mask_gen_inst(
@@ -320,6 +323,15 @@ module cpu(
 	assign CSRRI_signal = CSRR_signal & (if_id_out[46]);
 
 	//ID/EX Pipeline Register
+	always @(posedge clk or negedge rst_n_i) begin
+		if (!rst_n_i) begin
+			aluCtl_sign_ex <= 1'b0;
+		end
+		else begin
+			aluCtl_sign_ex <= aluCtl_sign_id;
+		end
+	end
+
 	id_ex id_ex_reg(
 			.clk(clk),
 			.rst_n_i(rst_n_i),
@@ -360,6 +372,7 @@ module cpu(
 			.ALUctl(id_ex_out[146:140]),
 			.A(wb_fwd1_mux_out),
 			.B(alu_mux_out),
+			.sign(aluCtl_sign_ex),
 			.ALUOut(alu_result),
 			.Branch_Enable(alu_branch_enable)
 		);
