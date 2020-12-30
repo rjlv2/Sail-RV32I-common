@@ -44,6 +44,7 @@
 
 module cpu(
 			clk,
+			rst_n_i,
 			inst_mem_in,
 			inst_mem_out,
 			data_mem_out,
@@ -51,12 +52,14 @@ module cpu(
 			data_mem_WrData,
 			data_mem_memwrite,
 			data_mem_memread,
-			data_mem_sign_mask
+			data_mem_sign_mask,
+			data_mem_stall
 		);
 	/*
 	 *	Input Clock
 	 */
 	input clk;
+	input rst_n_i;
 
 	/*
 	 *	instruction memory input
@@ -73,6 +76,7 @@ module cpu(
 	output			data_mem_memwrite;
 	output			data_mem_memread;
 	output [3:0]		data_mem_sign_mask;
+	input 			data_mem_stall;
 
 	/*
 	 *	Program Counter
@@ -191,7 +195,9 @@ module cpu(
 	program_counter PC(
 			.inAddr(pc_in),
 			.outAddr(pc_out),
-			.clk(clk)
+			.clk(clk),
+			.rst_n_i(rst_n_i),
+			.data_mem_stall(data_mem_stall)
 		);
 
 	mux2to1 inst_mux(
@@ -213,6 +219,8 @@ module cpu(
 	 */
 	if_id if_id_reg(
 			.clk(clk),
+			.rst_n_i(rst_n_i),
+			.data_mem_stall(data_mem_stall),
 			.data_in({inst_mux_out, pc_out}),
 			.data_out(if_id_out)
 		);
@@ -245,6 +253,8 @@ module cpu(
 
 	regfile register_files(
 			.clk(clk),
+			.rst_n_i(rst_n_i),
+			.data_mem_stall(data_mem_stall),
 			.write(ex_mem_out[2]),
 			.wrAddr(ex_mem_out[142:138]),
 			.wrData(reg_dat_mux_out),
@@ -312,6 +322,8 @@ module cpu(
 	//ID/EX Pipeline Register
 	id_ex id_ex_reg(
 			.clk(clk),
+			.rst_n_i(rst_n_i),
+			.data_mem_stall(data_mem_stall),
 			.data_in({if_id_out[63:52], RegB_AddrFwdFlush_mux_out[4:0], RegA_AddrFwdFlush_mux_out[4:0], if_id_out[43:39], dataMem_sign_mask, alu_ctl, imm_out, RegB_mux_out, RegA_mux_out, if_id_out[31:0], cont_mux_out[10:7], predict, cont_mux_out[6:0]}),
 			.data_out(id_ex_out)
 		);
@@ -362,6 +374,8 @@ module cpu(
 	//EX/MEM Pipeline Register
 	ex_mem ex_mem_reg(
 			.clk(clk),
+			.rst_n_i(rst_n_i),
+			.data_mem_stall(data_mem_stall),
 			.data_in({id_ex_out[177:166], id_ex_out[155:151], wb_fwd2_mux_out, lui_result, alu_branch_enable, addr_adder_sum, id_ex_out[43:12], ex_cont_mux_out[8:0]}),
 			.data_out(ex_mem_out)
 		);
@@ -394,6 +408,8 @@ module cpu(
 	//MEM/WB Pipeline Register
 	mem_wb mem_wb_reg(
 			.clk(clk),
+			.rst_n_i(rst_n_i),
+			.data_mem_stall(data_mem_stall),
 			.data_in({ex_mem_out[154:143], ex_mem_out[142:138], data_mem_out, mem_csrr_mux_out, ex_mem_out[105:74], ex_mem_out[3:0]}),
 			.data_out(mem_wb_out)
 		);

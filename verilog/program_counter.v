@@ -44,25 +44,19 @@
 
 
 
-module program_counter(inAddr, outAddr, clk);
+module program_counter(inAddr, outAddr, clk, rst_n_i, data_mem_stall);
 	input			clk;
+	input           rst_n_i;
+	input			data_mem_stall;
 	input [31:0]		inAddr;
 	output reg[31:0]	outAddr;
 
-	/*
-	 *	This uses Yosys's support for nonzero initial values:
-	 *
-	 *		https://github.com/YosysHQ/yosys/commit/0793f1b196df536975a044a4ce53025c81d00c7f
-	 *
-	 *	Rather than using this simulation construct (`initial`),
-	 *	the design should instead use a reset signal going to
-	 *	modules in the design.
-	 */
-	initial begin
-		outAddr = 32'b0;
-	end
-
-	always @(posedge clk) begin
-		outAddr <= inAddr;
+	always @(posedge clk, negedge rst_n_i) begin
+		if (!rst_n_i) begin
+			outAddr <= 32'b0;
+		end
+		else begin
+			outAddr <= data_mem_stall ? outAddr : inAddr;
+		end
 	end
 endmodule
