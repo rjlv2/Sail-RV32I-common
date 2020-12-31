@@ -91,7 +91,7 @@ module cpu(
 	/*
 	 *	Pipeline Registers
 	 */
-	wire [63:0]		if_id_out;
+	//wire [63:0]		if_id_out;
 	wire [177:0]		id_ex_out;
 	wire [154:0]		ex_mem_out;
 	wire [116:0]		mem_wb_out;
@@ -205,19 +205,33 @@ module cpu(
 	/*
 	 *	IF/ID Pipeline Register
 	 */
-	if_id if_id_reg(
+
+	/*if_id if_id_reg(
 			.clk(clk),
 			.rst_n_i(rst_n_i),
 			.data_mem_stall(data_mem_stall),
 			.data_in({inst_mux_out, pc_out}),
 			.data_out(if_id_out)
-		);
+		);*/
+
+	reg [31:0] instr_id;
+	reg [31:0] pc_id;
+	always @(posedge clk, negedge rst_n_i) begin
+		if(!rst_n_i) begin
+			instr_id <= 32'b0;
+			pc_id    <= 32'b0;
+		end
+		else begin
+			instr_id <= data_mem_stall ? instr_id : inst_mux_out;
+			pc_id    <= data_mem_stall ? pc_id    : pc_out;
+		end
+	end
 
 	/*
 	 *	Decode Stage
 	 */
 	control control_unit(
-			.opcode({if_id_out[38:32]}),
+			.opcode({instr_id[6:0]}),
 			.MemtoReg(MemtoReg1),
 			.RegWrite(RegWrite1),
 			.MemWrite(MemWrite1),
@@ -248,19 +262,19 @@ module cpu(
 		);
 
 	imm_gen immediate_generator(
-			.inst(if_id_out[63:32]),
+			.inst(instr_id),
 			.imm(imm_out)
 		);
 
 	ALUControl alu_control(
-			.Opcode(if_id_out[38:32]),
-			.FuncCode({if_id_out[62], if_id_out[46:44]}),
+			.Opcode(instr_id[6:0]),
+			.FuncCode({instr_id[30], instr_id[14:12]}),
 			.ALUCtl(alu_ctl),
 			.sign(aluCtl_sign_id)
 		);
 
 	sign_mask_gen sign_mask_gen_inst(
-			.func3(if_id_out[46:44]),
+			.func3(instr_id[14:12]),
 			.sign_mask(dataMem_sign_mask)
 		);
 
@@ -273,12 +287,12 @@ module cpu(
 			.rdVal_CSR(rdValOut_CSR)
 		);
 
-	assign RegA_mux_out = CSRRI_signal ? {27'b0, if_id_out[51:47]} : regA_out;
+	assign RegA_mux_out = CSRRI_signal ? {27'b0, instr_id[19:15]} : regA_out;
 	assign RegB_mux_out = CSRR_signal ? rdValOut_CSR : regB_out;
-	assign RegA_AddrFwdFlush_mux_out = CSRRI_signal ? 5'b0 : if_id_out[51:47];
-	assign RegB_AddrFwdFlush_mux_out = CSRR_signal ? 5'b0 : if_id_out[56:52];
+	assign RegA_AddrFwdFlush_mux_out = CSRRI_signal ? 5'b0 : instr_id[19:15];
+	assign RegB_AddrFwdFlush_mux_out = CSRR_signal ? 5'b0 : instr_id[24:20];
 
-	assign CSRRI_signal = CSRR_signal & (if_id_out[46]);
+	assign CSRRI_signal = CSRR_signal & (instr_id[14]);
 
 	//ID/EX Pipeline Register
 	always @(posedge clk or negedge rst_n_i) begin
@@ -294,7 +308,7 @@ module cpu(
 			.clk(clk),
 			.rst_n_i(rst_n_i),
 			.data_mem_stall(data_mem_stall),
-			.data_in({if_id_out[63:52], RegB_AddrFwdFlush_mux_out, RegA_AddrFwdFlush_mux_out, if_id_out[43:39], dataMem_sign_mask, alu_ctl, imm_out, RegB_mux_out, RegA_mux_out, if_id_out[31:0], cont_mux_out[10:7], predict, cont_mux_out[6:0]}),
+			.data_in({instr_id[31:20], RegB_AddrFwdFlush_mux_out, RegA_AddrFwdFlush_mux_out, instr_id[11:7], dataMem_sign_mask, alu_ctl, imm_out, RegB_mux_out, RegA_mux_out, pc_id, cont_mux_out[10:7], predict, cont_mux_out[6:0]}),
 			.data_out(id_ex_out)
 		);
 
@@ -386,7 +400,7 @@ module cpu(
 			.actual_branch_decision(actual_branch_decision),
 			.branch_decode_sig(cont_mux_out[6]),
 			.branch_mem_sig(ex_mem_out[6]),
-			.in_addr(if_id_out[31:0]),
+			.in_addr(pc_id),
 			.offset(imm_out),
 			.branch_addr(branch_predictor_addr),
 			.prediction(predict)
