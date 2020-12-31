@@ -93,7 +93,7 @@ module cpu(
 	 */
 	//wire [63:0]		if_id_out;
 	//wire [177:0]		id_ex_out;
-	wire [154:0]		ex_mem_out;
+	//wire [154:0]		ex_mem_out;
 	wire [116:0]		mem_wb_out;
 
 	/*
@@ -134,11 +134,11 @@ module cpu(
 	wire [8:0]		ex_cont_mux_out;
 	wire [31:0]		addr_adder_mux_out;
 	wire [31:0]		alu_mux_out;
-	wire [31:0]		addr_adder_sum;
+	wire [31:0]		addr_adder_sum_ex;
 	wire [6:0]		alu_ctl;
 	wire			alu_branch_enable;
 	wire [31:0]		alu_result;
-	wire [31:0]		lui_result;
+	wire [31:0]		alu_result_ex;
 	reg 			aluCtl_sign_ex;
 
 	/*
@@ -182,7 +182,7 @@ module cpu(
 	 *	Instruction Fetch Stage
 	 */
 
-	assign pc_in = pcsrc ? ex_mem_out[72:41] : pc_mux0;
+	assign pc_in = pcsrc ? addr_adder_sum_m0 : pc_mux0;
 
 
 	adder pc_adder(
@@ -274,8 +274,8 @@ module cpu(
 			.clk(clk),
 			.rst_n_i(rst_n_i),
 			.data_mem_stall(data_mem_stall),
-			.write(ex_mem_out[2]),
-			.wrAddr(ex_mem_out[142:138]),
+			.write(RegWrite_m0),
+			.wrAddr(rd_addr_m0),
 			.wrData(reg_dat_mux_out),
 			.rdAddrA(inst_mux_out[19:15]),
 			.rdDataA(regA_out),
@@ -407,7 +407,7 @@ module cpu(
 	adder addr_adder(
 			.input1(addr_adder_mux_out),
 			.input2(imm_sext_ex),
-			.out(addr_adder_sum)
+			.out(addr_adder_sum_ex)
 		);
 
 	assign alu_mux_out = ALUSrc_ex ? imm_sext_ex : wb_fwd2_mux_out;
@@ -421,55 +421,110 @@ module cpu(
 			.Branch_Enable(alu_branch_enable)
 		);
 
-	assign lui_result = Lui_ex ? imm_sext_ex : alu_result;
+	assign alu_result_ex = Lui_ex ? imm_sext_ex : alu_result;
 
 	//EX/MEM Pipeline Register
-	ex_mem ex_mem_reg(
+	/*ex_mem ex_mem_reg(
 			.clk(clk),
 			.rst_n_i(rst_n_i),
 			.data_mem_stall(data_mem_stall),
-			.data_in({imm12_ex, rd_addr_ex, wb_fwd2_mux_out, lui_result, alu_branch_enable, addr_adder_sum, pc_ex, ex_cont_mux_out}),
+			.data_in({imm12_ex, rd_addr_ex, wb_fwd2_mux_out, alu_result_ex, alu_branch_enable, addr_adder_sum_ex, pc_ex, ex_cont_mux_out}),
 			.data_out(ex_mem_out)
-		);
+		);*/
+
+	reg[11:0] imm12_m0;
+	reg[ 4:0] rd_addr_m0;
+	reg[31:0] wrData_m0;
+	reg[31:0] alu_result_m0;
+	reg alu_branch_enable_m0;
+	reg[31:0] addr_adder_sum_m0;
+	reg[31:0] pc_m0;
+	reg Auipc_m0;
+	reg predict_m0;
+	reg Branch_m0;
+	reg MemRead_m0;
+	reg MemWrite_m0;
+	reg CSRR_signal_m0;
+	reg RegWrite_m0;
+	reg MemtoReg_m0;
+	reg Jump_m0;
+	always @(posedge clk or negedge rst_n_i) begin
+		if (!rst_n_i) begin
+			imm12_m0             <= 12'b0;
+			rd_addr_m0           <= 5'b0;
+			wrData_m0            <= 32'b0;
+			alu_result_m0        <= 32'b0;
+			alu_branch_enable_m0 <= 1'b0;
+			addr_adder_sum_m0    <= 32'b0;
+			pc_m0                <= 32'b0;
+			Auipc_m0             <= 1'b0;
+			predict_m0           <= 1'b0;
+			Branch_m0            <= 1'b0;
+			MemRead_m0           <= 1'b0;
+			MemWrite_m0          <= 1'b0;
+			CSRR_signal_m0       <= 1'b0;
+			RegWrite_m0          <= 1'b0;
+			MemtoReg_m0          <= 1'b0;
+			Jump_m0              <= 1'b0;
+		end
+		else begin
+			imm12_m0             <= data_mem_stall ? imm12_m0 : imm12_ex;
+			rd_addr_m0           <= data_mem_stall ? rd_addr_m0 : rd_addr_ex;
+			wrData_m0            <= data_mem_stall ? wrData_m0 : wb_fwd2_mux_out;
+			alu_result_m0        <= data_mem_stall ? alu_result_m0 : alu_result_ex;
+			alu_branch_enable_m0 <= data_mem_stall ? alu_branch_enable_m0 : alu_branch_enable;
+			addr_adder_sum_m0    <= data_mem_stall ? addr_adder_sum_m0 : addr_adder_sum_ex;
+			pc_m0                <= data_mem_stall ? pc_m0 : pc_ex;
+			Auipc_m0             <= data_mem_stall ? Auipc_m0 : Auipc_ex;
+			predict_m0           <= data_mem_stall ? predict_m0 : predict_ex;
+			Branch_m0            <= data_mem_stall ? Branch_m0 : Branch_ex;
+			MemRead_m0           <= data_mem_stall ? MemRead_m0 : MemRead_ex;
+			MemWrite_m0          <= data_mem_stall ? MemWrite_m0 : MemWrite_ex;
+			CSRR_signal_m0       <= data_mem_stall ? CSRR_signal_m0 : CSRR_signal_ex;
+			RegWrite_m0          <= data_mem_stall ? RegWrite_m0 : RegWrite_ex;
+			MemtoReg_m0          <= data_mem_stall ? MemtoReg_m0 : MemtoReg_ex;
+			Jump_m0              <= data_mem_stall ? Jump_m0 : Jump_ex;
+		end
+	end
 
 	//Memory Access Stage
 	branch_decision branch_decide(
-			.Branch(ex_mem_out[6]),
-			.Predicted(ex_mem_out[7]),
-			.Branch_Enable(ex_mem_out[73]),
-			.Jump(ex_mem_out[0]),
+			.Branch(Branch_m0),
+			.Predicted(predict_m0),
+			.Branch_Enable(alu_branch_enable_m0),
+			.Jump(Jump_m0),
 			.Mispredict(mistake_trigger),
 			.Decision(actual_branch_decision),
 			.Branch_Jump_Trigger(pcsrc)
 		);
 
-	assign auipc_mux_out = ex_mem_out[8] ? ex_mem_out[72:41] : ex_mem_out[105:74];
-	assign mem_csrr_mux_out = ex_mem_out[3] ? ex_mem_out[137:106] : auipc_mux_out;
+	assign auipc_mux_out = Auipc_m0 ? addr_adder_sum_m0 : alu_result_m0;
+	assign mem_csrr_mux_out = CSRR_signal_m0 ? wrData_m0 : auipc_mux_out;
 
 	//MEM/WB Pipeline Register
 	mem_wb mem_wb_reg(
 			.clk(clk),
 			.rst_n_i(rst_n_i),
 			.data_mem_stall(data_mem_stall),
-			.data_in({ex_mem_out[154:143], ex_mem_out[142:138], data_mem_out, mem_csrr_mux_out, ex_mem_out[105:74], ex_mem_out[3:0]}),
+			.data_in({imm12_m0, rd_addr_m0, data_mem_out, mem_csrr_mux_out, alu_result_m0, CSRR_signal_m0, RegWrite_m0, MemtoReg_m0, Jump_m0}),
 			.data_out(mem_wb_out)
 		);
 
 	assign wb_mux_out = mem_wb_out[1] ? mem_wb_out[99:68] : mem_wb_out[67:36];
-	assign reg_dat_mux_out = ex_mem_out[0] ? pc_ex : mem_regwb_mux_out;
+	assign reg_dat_mux_out = Jump_m0 ? pc_ex : mem_regwb_mux_out;
 
 	//Forwarding Unit
 	ForwardingUnit forwarding_unit(
 			.rs1(regA_addr_ex),
 			.rs2(regB_addr_ex),
-			.MEM_RegWriteAddr(ex_mem_out[142:138]),
+			.MEM_RegWriteAddr(rd_addr_m0),
 			.WB_RegWriteAddr(mem_wb_out[104:100]),
-			.MEM_RegWrite(ex_mem_out[2]),
+			.MEM_RegWrite(RegWrite_m0),
 			.WB_RegWrite(mem_wb_out[2]),
 			.EX_CSRR_Addr(imm12_ex),
-			.MEM_CSRR_Addr(ex_mem_out[154:143]),
+			.MEM_CSRR_Addr(imm12_m0),
 			.WB_CSRR_Addr(mem_wb_out[116:105]),
-			.MEM_CSRR(ex_mem_out[3]),
+			.MEM_CSRR(CSRR_signal_m0),
 			.WB_CSRR(mem_wb_out[3]),
 			.MEM_fwd1(mfwd1),
 			.MEM_fwd2(mfwd2),
@@ -481,14 +536,14 @@ module cpu(
 	assign mem_fwd2_mux_out = mfwd2 ? dataMemOut_fwd_mux_out : RegB_val_ex;
 	assign wb_fwd1_mux_out = wfwd1 ? wb_mux_out : mem_fwd1_mux_out;
 	assign wb_fwd2_mux_out = wfwd2 ? wb_mux_out : mem_fwd2_mux_out;
-	assign dataMemOut_fwd_mux_out = ex_mem_out[1] ? data_mem_out : ex_mem_out[105:74];
+	assign dataMemOut_fwd_mux_out = MemtoReg_m0 ? data_mem_out : alu_result_m0;
 
 	//Branch Predictor
 	branch_predictor branch_predictor_FSM(
 			.clk(clk),
 			.actual_branch_decision(actual_branch_decision),
 			.branch_decode_sig(cont_mux_out[6]),
-			.branch_mem_sig(ex_mem_out[6]),
+			.branch_mem_sig(Branch_m0),
 			.in_addr(pc_id),
 			.offset(imm_out),
 			.branch_addr(branch_predictor_addr),
@@ -501,7 +556,7 @@ module cpu(
 
 	wire[31:0] mem_regwb_mux_out; //TODO copy of wb_mux but in mem stage, move back and cleanup
 	//A copy of the writeback mux, but in MEM stage //TODO move back and cleanup
-	assign mem_regwb_mux_out = ex_mem_out[1] ? data_mem_out : mem_csrr_mux_out;
+	assign mem_regwb_mux_out = MemtoReg_m0 ? data_mem_out : mem_csrr_mux_out;
 
 	//OR gate assignments, used for flushing
 	assign decode_ctrl_mux_sel = pcsrc | mistake_trigger;
@@ -511,7 +566,7 @@ module cpu(
 	assign inst_mem_in = pc_out;
 
 	//Data Memory Connections
-	assign data_mem_addr = lui_result;
+	assign data_mem_addr = alu_result_ex;
 	assign data_mem_WrData = wb_fwd2_mux_out;
 	assign data_mem_memwrite = ex_cont_mux_out[4];
 	assign data_mem_memread = ex_cont_mux_out[5];
