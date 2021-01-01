@@ -131,7 +131,6 @@ module cpu(
 	/*
 	 *	Execute stage
 	 */
-	wire [8:0]		ex_cont_mux_out;
 	wire [31:0]		addr_adder_mux_out;
 	wire [31:0]		alu_mux_out;
 	wire [31:0]		addr_adder_sum_ex;
@@ -400,8 +399,25 @@ module cpu(
 			.data_in({instr_id[31:20], RegB_AddrFwdFlush_mux_out, RegA_AddrFwdFlush_mux_out, instr_id[11:7], dataMem_sign_mask, alu_ctl, imm_out, RegB_mux_out, RegA_mux_out, pc_id, cont_mux_out[10:7], predict, cont_mux_out[6:0]}),
 			.data_out(id_ex_out)
 		);*/
+	wire Auipc_gtd_ex;
+	wire predict_gtd_ex;
+	wire Branch_gtd_ex;
+	wire MemRead_gtd_ex;
+	wire MemWrite_gtd_ex;
+	wire CSRR_signal_gtd_ex;
+	wire RegWrite_gtd_ex;
+	wire MemtoReg_gtd_ex;
+	wire Jump_gtd_ex;
+	assign Auipc_gtd_ex = pcsrc ? 1'b0 : Auipc_ex;
+	assign predict_gtd_ex = pcsrc ? 1'b0 : predict_ex;
+	assign Branch_gtd_ex = pcsrc ? 1'b0 : Branch_ex;
+	assign MemRead_gtd_ex = pcsrc ? 1'b0 : MemRead_ex;
+	assign MemWrite_gtd_ex = pcsrc ? 1'b0 : MemWrite_ex;
+	assign CSRR_signal_gtd_ex = pcsrc ? 1'b0 : CSRR_signal_ex;
+	assign RegWrite_gtd_ex = pcsrc ? 1'b0 : RegWrite_ex;
+	assign MemtoReg_gtd_ex = pcsrc ? 1'b0 : MemtoReg_ex;
+	assign Jump_gtd_ex = pcsrc ? 1'b0 : Jump_ex;
 
-	assign ex_cont_mux_out = pcsrc ? 9'b0 : {Auipc_ex, predict_ex, Branch_ex, MemRead_ex, MemWrite_ex, CSRR_signal_ex, RegWrite_ex, MemtoReg_ex, Jump_ex};
 	assign addr_adder_mux_out = Jalr_ex ? wb_fwd1_mux_out : pc_ex;
 
 	adder addr_adder(
@@ -475,15 +491,15 @@ module cpu(
 			alu_branch_enable_m0 <= data_mem_stall ? alu_branch_enable_m0 : alu_branch_enable;
 			addr_adder_sum_m0    <= data_mem_stall ? addr_adder_sum_m0 : addr_adder_sum_ex;
 			pc_m0                <= data_mem_stall ? pc_m0 : pc_ex;
-			Auipc_m0             <= data_mem_stall ? Auipc_m0 : Auipc_ex;
-			predict_m0           <= data_mem_stall ? predict_m0 : predict_ex;
-			Branch_m0            <= data_mem_stall ? Branch_m0 : Branch_ex;
-			MemRead_m0           <= data_mem_stall ? MemRead_m0 : MemRead_ex;
-			MemWrite_m0          <= data_mem_stall ? MemWrite_m0 : MemWrite_ex;
-			CSRR_signal_m0       <= data_mem_stall ? CSRR_signal_m0 : CSRR_signal_ex;
-			RegWrite_m0          <= data_mem_stall ? RegWrite_m0 : RegWrite_ex;
-			MemtoReg_m0          <= data_mem_stall ? MemtoReg_m0 : MemtoReg_ex;
-			Jump_m0              <= data_mem_stall ? Jump_m0 : Jump_ex;
+			Auipc_m0             <= data_mem_stall ? Auipc_m0 : Auipc_gtd_ex;
+			predict_m0           <= data_mem_stall ? predict_m0 : predict_gtd_ex;
+			Branch_m0            <= data_mem_stall ? Branch_m0 : Branch_gtd_ex;
+			MemRead_m0           <= data_mem_stall ? MemRead_m0 : MemRead_gtd_ex;
+			MemWrite_m0          <= data_mem_stall ? MemWrite_m0 : MemWrite_gtd_ex;
+			CSRR_signal_m0       <= data_mem_stall ? CSRR_signal_m0 : CSRR_signal_gtd_ex;
+			RegWrite_m0          <= data_mem_stall ? RegWrite_m0 : RegWrite_gtd_ex;
+			MemtoReg_m0          <= data_mem_stall ? MemtoReg_m0 : MemtoReg_gtd_ex;
+			Jump_m0              <= data_mem_stall ? Jump_m0 : Jump_gtd_ex;
 		end
 	end
 
@@ -509,6 +525,15 @@ module cpu(
 			.data_in({imm12_m0, rd_addr_m0, data_mem_out, mem_csrr_mux_out, alu_result_m0, CSRR_signal_m0, RegWrite_m0, MemtoReg_m0, Jump_m0}),
 			.data_out(mem_wb_out)
 		);
+
+	/*always @(posedge clk or negedge rst_n_i) begin
+		if (!rst_n_i) begin
+			 <= 'b0;
+		end
+		else begin
+			 <= data_mem_stall ?  : ;
+		end
+	end*/
 
 	assign wb_mux_out = mem_wb_out[1] ? mem_wb_out[99:68] : mem_wb_out[67:36];
 	assign reg_dat_mux_out = Jump_m0 ? pc_ex : mem_regwb_mux_out;
@@ -568,7 +593,7 @@ module cpu(
 	//Data Memory Connections
 	assign data_mem_addr = alu_result_ex;
 	assign data_mem_WrData = wb_fwd2_mux_out;
-	assign data_mem_memwrite = ex_cont_mux_out[4];
-	assign data_mem_memread = ex_cont_mux_out[5];
+	assign data_mem_memwrite = MemWrite_gtd_ex;
+	assign data_mem_memread = MemRead_gtd_ex;
 	assign data_mem_sign_mask = dataMem_sign_mask_ex;
 endmodule
