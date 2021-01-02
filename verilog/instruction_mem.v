@@ -42,7 +42,10 @@
 
 
 
-module instruction_memory(addr, out);
+module instruction_memory(clk, rst_n_i, addr, out, mem_stall);
+	input 				clk;
+	input 				rst_n_i;
+	input 				mem_stall;
 	input [31:0]		addr;
 	output [31:0]		out;
 
@@ -71,8 +74,18 @@ module instruction_memory(addr, out);
 		/*
 		 *	read from "program.hex" and store the instructions in instruction memory
 		 */
-		$readmemh("verilog/program.hex",instruction_memory);
+		$readmemh("program.hex",instruction_memory);
 	end
 
-	assign out = instruction_memory[addr >> 2];
+	reg[31:0] instr_word_rd;
+	always @(posedge clk or negedge rst_n_i) begin
+		if (!rst_n_i) begin
+			instr_word_rd <= 32'b0;
+		end
+		else begin
+			instr_word_rd <= mem_stall ? instr_word_rd : instruction_memory[addr >> 2];
+		end
+	end
+
+	assign out = instr_word_rd;//instruction_memory[addr >> 2];
 endmodule
