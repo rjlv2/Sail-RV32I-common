@@ -42,10 +42,9 @@
 
 
 
-module instruction_memory(clk, rst_n_i, addr, out, mem_stall);
+module instruction_memory(clk, rst_n_i, addr, out);
 	input 				clk;
 	input 				rst_n_i;
-	input 				mem_stall;
 	input [31:0]		addr;
 	output [31:0]		out;
 
@@ -83,7 +82,7 @@ module instruction_memory(clk, rst_n_i, addr, out, mem_stall);
 			instr_word_rd <= 32'b0;
 		end
 		else begin
-			instr_word_rd <= mem_stall ? instr_word_rd : instruction_memory[addr >> 2];
+			instr_word_rd <= instruction_memory[addr >> 2];
 		end
 	end
 
