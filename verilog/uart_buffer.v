@@ -3,14 +3,15 @@ module uart_buffer(
 	input rst_n_i,
 	input[31:0] addr_i,
 	input[31:0] wdata_i,
-	input buf_rnw_i,
+	input buf_read_i,
+	input buf_write_i,
 	output[31:0] rdata_o,
 	output rx_buffer_full_o,
 	output rx_buffer_empty_o,
 	output rx_buf_access_o
 );
 
-assign rx_buf_access_o = valid_rx_buf_read || valid_rx_buf_write;
+assign rx_buf_access_o = rx_buf_access && (buf_read_i || buf_write_i);//valid_rx_buf_read || valid_rx_buf_write;
 
 //for now, set address 0x10000 as rx read pointer, 0x10004 as rx write pointer
 //set address 0x20000 as tx read pointer, 0x10014 as tx write pointer
@@ -37,8 +38,8 @@ assign rx_buffer_empty_o = (rx_read_ptr == rx_write_ptr);
 
 wire valid_rx_buf_read;
 wire valid_rx_buf_write;
-assign valid_rx_buf_read  = (rx_buf_access && buf_rnw_i && !rx_buffer_empty_o);
-assign valid_rx_buf_write = (rx_buf_access && !buf_rnw_i && !rx_buffer_full_o);
+assign valid_rx_buf_read  = (rx_buf_access && buf_read_i && !rx_buffer_empty_o);
+assign valid_rx_buf_write = (rx_buf_access && buf_write_i && !rx_buffer_full_o);
 
 reg[31:0] rx_read_ptr_n;
 reg[31:0] rx_write_ptr_n;
