@@ -10,7 +10,6 @@ module mem_arbiter(
 
     //instruction fetch interface
     input[31:0] pc_i,
-    input lsu_stall_i,
     output reg[31:0] if_rdata_o, // Instruction fetch data output
 
     //load-store interface
@@ -21,6 +20,7 @@ module mem_arbiter(
     input lsu_write_i,
     input lsu_read_i,
     output reg[31:0] load_rdata_o, // result from loads
+    output reg lsu_stall_ex_o,
 
     //memory interface for each sector
     //input[31:0] rdata_raw_m0_i[`NSECT-1:0], //data returned from reading
@@ -122,7 +122,7 @@ always @(*) begin
     //sect_wr_req_ex_o = `NSECT'b0;
     sect_wr_req_ex_o = lsu_wr_req_ex;
 
-    sect_rd_req_ex_o = (lsu_rd_req_ex | (if_req_pc ^ lsu_wr_req_ex)); //don't overlap with lsu write
+    sect_rd_req_ex_o = (lsu_rd_req_ex | (if_req_pc & ~lsu_wr_req_ex)); //don't overlap with lsu write
 end
 
 
@@ -158,7 +158,7 @@ always @(posedge clk_i or negedge rst_n_i) begin
         size_m0 <= 2'b0;
         size_m1 <= 2'b0;
         if_rdata_q <= 32'b0;
-        lsu_stall_q <= 1'b0;
+        lsu_stall_m0 <= 1'b0;
     end
     else begin
         if_req_if <= if_req_pc;
@@ -173,14 +173,16 @@ always @(posedge clk_i or negedge rst_n_i) begin
         size_m0 <= size_ex;
         size_m1 <= size_m0;
         if_rdata_q <= if_rdata_o;
-        lsu_stall_q <= lsu_stall_i;
+        lsu_stall_m0 <= lsu_stall_ex_o;
     end
 end
+
+assign lsu_stall_ex_o = (lsu_write_i || lsu_read_i) && !lsu_stall_m0; //TODO only read needs stalling?
 
 reg[31:0] lsu_rdata_raw_m0;
 reg[31:0] lsu_rdata_raw_m1;
 reg[31:0] if_rdata_q;
-reg lsu_stall_q;
+reg lsu_stall_m0;
 
 always @(*) begin
     lsu_rdata_raw_m0 = rdata_raw_m0_i[lsu_req_idx_m0];
@@ -188,7 +190,7 @@ always @(*) begin
         if_rdata_o = 32'h00000013; // nop
     end
     else begin
-        if_rdata_o = lsu_stall_q ? if_rdata_q : rdata_raw_m0_i[if_req_idx_if]; //always aligned to 32-bit boundary //TODO: case statement neater?
+        if_rdata_o = lsu_stall_m0 ? if_rdata_q : rdata_raw_m0_i[if_req_idx_if]; //always aligned to 32-bit boundary //TODO: case statement neater?
     end
 end
 
