@@ -9,7 +9,7 @@ module ext_if_reg_wrapper(
 	input[31:0] wdata_i,
 	input mem_read_i,
 	input mem_write_i,
-	output[31:0] rdata_o,
+	output reg[31:0] rdata_o,
 
 	// UART RX insterface
 	input rx_buf_write_i, //write to buffer by uart
@@ -115,6 +115,7 @@ always @(posedge clk, negedge rst_n_i) begin
 end
 
 assign led_reg_val = led_reg;
+assign led_o = led_reg;
 
 /*************** select read output ***************/
 
