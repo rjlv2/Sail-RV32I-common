@@ -12,10 +12,7 @@ module mem_block #(parameter DEPTH=512, parameter WIDTH=4)(
 );
 
 reg[7:0] mline_output[WIDTH-1:0];
-reg[7:0] mem_column[DEPTH-1:0][WIDTH-1:0];
-
-//wire[7:0] wr_data_col[WIDTH-1:0];
-
+reg[7:0] mem_column[WIDTH-1:0][DEPTH-1:0];
 
 wire[$clog2(DEPTH)-1:0] mcol_idx;
 assign mcol_idx = addr_i[$clog2(DEPTH*WIDTH)-1:$clog2(WIDTH)];
