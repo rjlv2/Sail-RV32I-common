@@ -411,8 +411,8 @@ module cpu(
 	assign Auipc_gtd_ex = pcsrc ? 1'b0 : Auipc_ex;
 	assign predict_gtd_ex = pcsrc ? 1'b0 : predict_ex;
 	assign Branch_gtd_ex = pcsrc ? 1'b0 : Branch_ex;
-	assign MemRead_gtd_ex = pcsrc ? 1'b0 : MemRead_ex;
-	assign MemWrite_gtd_ex = pcsrc ? 1'b0 : MemWrite_ex;
+	assign MemRead_gtd_ex = pcsrc || data_mem_stall_q ? 1'b0 : MemRead_ex;
+	assign MemWrite_gtd_ex = pcsrc || data_mem_stall_q ? 1'b0 : MemWrite_ex;
 	assign CSRR_signal_gtd_ex = pcsrc ? 1'b0 : CSRR_signal_ex;
 	assign RegWrite_gtd_ex = pcsrc ? 1'b0 : RegWrite_ex;
 	assign MemtoReg_gtd_ex = pcsrc ? 1'b0 : MemtoReg_ex;
@@ -622,4 +622,14 @@ module cpu(
 	assign data_mem_memwrite = MemWrite_gtd_ex;
 	assign data_mem_memread = MemRead_gtd_ex;
 	assign data_mem_sign_mask = dataMem_sign_mask_ex;
+
+	reg data_mem_stall_q;
+	always @(posedge clk, negedge rst_n_i) begin
+		if (!rst_n_i) begin
+			data_mem_stall_q <= 1'b0;
+		end
+		else begin
+			data_mem_stall_q <= data_mem_stall;
+		end
+	end
 endmodule
