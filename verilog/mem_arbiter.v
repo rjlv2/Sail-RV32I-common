@@ -150,11 +150,11 @@ always @(posedge clk_i or negedge rst_n_i) begin
         //lsu_wr_req_q <= `NSECT'b0;
         //lsu_rd_req_q <= `NSECT'b0;
         if_stalled_if <= 1'b0;
-        if_req_idx_if <= ($clog2(`NSECT))'('b0);
-        lsu_req_idx_m0 <= ($clog2(`NSECT))'('b0);
+        if_req_idx_if <= {$clog2(`NSECT){1'b0}};
+        lsu_req_idx_m0 <= {$clog2(`NSECT){1'b0}};
         lsu_rdata_raw_m1 <= 32'b0;
-        byteOffset_m0 <= ($clog2(`NSECT))'('b0);
-        byteOffset_m1 <= ($clog2(`NSECT))'('b0);
+        byteOffset_m0 <= {$clog2(`NSECT){1'b0}};
+        byteOffset_m1 <= {$clog2(`NSECT){1'b0}};
         size_m0 <= 2'b0;
         size_m1 <= 2'b0;
         if_rdata_q <= 32'b0;
@@ -177,7 +177,9 @@ always @(posedge clk_i or negedge rst_n_i) begin
     end
 end
 
-assign lsu_stall_ex_o = (lsu_write_i || lsu_read_i) && !lsu_stall_m0; //TODO only read needs stalling?
+always @(*) begin
+    lsu_stall_ex_o = (lsu_write_i || lsu_read_i) && !lsu_stall_m0; //TODO only read needs stalling?
+end
 
 reg[31:0] lsu_rdata_raw_m0;
 reg[31:0] lsu_rdata_raw_m1;

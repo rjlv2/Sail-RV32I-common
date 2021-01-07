@@ -16,6 +16,7 @@ module ext_if_reg_wrapper(
 	input[7:0] rx_buf_wr_data_i,
 	output rx_buffer_full_o,
 	output rx_buffer_empty_o,
+	output[7:0] rx_write_ptr_o,
 	
 	//external led
 	output [7:0] led_o
@@ -32,25 +33,27 @@ module ext_if_reg_wrapper(
 */
 wire addr_is_rx_buf;
 wire addr_is_rx_sts;
-wire addr_is_tx_buf;
-wire addr_is_tx_sts;
+//wire addr_is_tx_buf; //TODO: implement tx for sending messages out
+//wire addr_is_tx_sts; //TODO: implement tx for sending messages out
 wire addr_is_led_o;
 assign addr_is_rx_buf = (addr_i[10:0] == 11'h0);
 assign addr_is_rx_sts = (addr_i[10:0] == 11'h4);
-assign addr_is_tx_buf = (addr_i[10:0] == 11'h8);
-assign addr_is_tx_sts = (addr_i[10:0] == 11'hc);
+//assign addr_is_tx_buf = (addr_i[10:0] == 11'h8); //TODO: implement tx for sending messages out
+//assign addr_is_tx_sts = (addr_i[10:0] == 11'hc); //TODO: implement tx for sending messages out
 assign addr_is_led_o  = (addr_i[10:0] == 11'h10); //external led output, modify this section to create I/O
 
 
 /***************** uart rx buffer *****************/
 
-reg[7:0] rx_buffer [127:0]; //TODO replace magic numbers
+reg[7:0] rx_buffer [7:0]; //TODO replace magic numbers
 
 //these pointers are hidden to the program, the value of the byte pointed to by the read pointer is exposed through a register
-reg[7:0] rx_read_ptr; //use 128 byte buffer, 1 extra bit is used for keeping track 
-reg[7:0] rx_write_ptr; //actual index into buffer is [6:0]
+reg[3:0] rx_read_ptr; //use 128 byte buffer, 1 extra bit is used for keeping track 
+reg[3:0] rx_write_ptr; //actual index into buffer is [6:0]
 
-assign rx_buffer_full_o  = (rx_read_ptr[6:0] == rx_write_ptr[6:0]) && (rx_read_ptr[7] ^ rx_write_ptr[7]);
+assign rx_write_ptr_o = rx_write_ptr;
+
+assign rx_buffer_full_o  = (rx_read_ptr[2:0] == rx_write_ptr[2:0]) && (rx_read_ptr[3] ^ rx_write_ptr[3]);
 assign rx_buffer_empty_o = (rx_read_ptr == rx_write_ptr);
 
 wire valid_rx_buf_read;
@@ -58,18 +61,18 @@ wire valid_rx_buf_write;
 assign valid_rx_buf_read  = addr_is_rx_buf && mem_read_i && !rx_buffer_empty_o;
 assign valid_rx_buf_write = rx_buf_write_i && !rx_buffer_full_o;
 
-reg[7:0] rx_read_ptr_n;
-reg[7:0] rx_write_ptr_n;
+reg[3:0] rx_read_ptr_n;
+reg[3:0] rx_write_ptr_n;
 always @(*) begin
-	rx_read_ptr_n  = valid_rx_buf_read  ? rx_read_ptr  + 8'b1 : rx_read_ptr;
-	rx_write_ptr_n = valid_rx_buf_write ? rx_write_ptr + 8'b1 : rx_write_ptr;
+	rx_read_ptr_n  = valid_rx_buf_read  ? rx_read_ptr  + 4'b1 : rx_read_ptr;
+	rx_write_ptr_n = valid_rx_buf_write ? rx_write_ptr + 4'b1 : rx_write_ptr;
 end
 
 reg[31:0] rx_read_val;
 always @(posedge clk, negedge rst_n_i) begin
 	if (!rst_n_i) begin
-		rx_read_ptr  <= 8'b0;
-		rx_write_ptr <= 8'b0;
+		rx_read_ptr  <= 4'b0;
+		rx_write_ptr <= 4'b0;
 	end
 	else begin
 		rx_read_ptr  <= rx_read_ptr_n;
