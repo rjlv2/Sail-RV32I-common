@@ -16,7 +16,7 @@ module ext_if_reg_wrapper(
 	input[7:0] rx_buf_wr_data_i,
 	output rx_buffer_full_o,
 	output rx_buffer_empty_o,
-	output[7:0] rx_write_ptr_o,
+	//output[7:0] rx_write_ptr_o,
 	
 	//external led
 	output [7:0] led_o
@@ -51,7 +51,7 @@ reg[7:0] rx_buffer [7:0]; //TODO replace magic numbers
 reg[3:0] rx_read_ptr; //use 128 byte buffer, 1 extra bit is used for keeping track 
 reg[3:0] rx_write_ptr; //actual index into buffer is [6:0]
 
-assign rx_write_ptr_o = rx_write_ptr;
+//assign rx_write_ptr_o = rx_write_ptr;
 
 assign rx_buffer_full_o  = (rx_read_ptr[2:0] == rx_write_ptr[2:0]) && (rx_read_ptr[3] ^ rx_write_ptr[3]);
 assign rx_buffer_empty_o = (rx_read_ptr == rx_write_ptr);
