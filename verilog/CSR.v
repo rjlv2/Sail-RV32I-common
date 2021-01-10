@@ -77,6 +77,7 @@ module csr_file (clk, rst_n_i, CSR_wr_en_i, CSR_addr_i, CSR_src_i, CSP_op_i, CSR
 			end
 			default: begin
 				//do nothing
+				CSR_rd_o = 32'b0;
 			end
 		endcase
 

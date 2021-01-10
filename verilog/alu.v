@@ -62,15 +62,15 @@ module alu(ALUctl, A, B, sign, ALUOut, Branch_Enable);
 	output reg [31:0]	ALUOut;
 	output reg		Branch_Enable;
 
-	reg [31:0] alu_and_result;
-	reg [31:0] alu_or_result;
-	reg [31:0] alu_add_result;
-	reg [31:0] alu_sub_result;
-	reg [31:0] alu_slt_result;
-	reg [31:0] alu_srl_result;
-	reg [31:0] alu_sra_result;
-	reg [31:0] alu_sll_result;
-	reg [31:0] alu_xor_result;
+	wire [31:0] alu_and_result;
+	wire [31:0] alu_or_result;
+	wire [31:0] alu_add_result;
+	wire [31:0] alu_sub_result;
+	wire [31:0] alu_slt_result;
+	wire [31:0] alu_srl_result;
+	wire [31:0] alu_sra_result;
+	wire [31:0] alu_sll_result;
+	wire [31:0] alu_xor_result;
 
 	assign alu_and_result = A & B;
 	assign alu_or_result = A | B;
