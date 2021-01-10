@@ -374,7 +374,7 @@ module cpu(
 		else begin
 			imm12_ex     <= data_mem_stall ? imm12_ex : instr_id[31:20];
 			regB_addr_ex <= data_mem_stall ? regB_addr_ex : rs2_addr_id;
-			regA_addr_ex <= data_mem_stall ? regA_addr_ex : rs2_addr_id;
+			regA_addr_ex <= data_mem_stall ? regA_addr_ex : rs1_addr_id;
 			rd_addr_ex   <= data_mem_stall ? rd_addr_ex : instr_id[11:7];
 			dataMem_sign_mask_ex <= data_mem_stall ? dataMem_sign_mask_ex : dataMem_sign_mask;
 			alu_ctl_ex   <= data_mem_stall ? alu_ctl_ex : alu_ctl;
