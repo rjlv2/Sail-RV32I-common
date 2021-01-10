@@ -42,23 +42,73 @@
  *		This module implements the control and status registers (CSRs).
  */
 
+`include "include/rv32i-defines.v"
+`include "include/sail-core-defines.v"
 
+`define CSR_RDCYCLEL_ADDR 12'hc00 //TODO move these to defines file
+`define CSR_RDCYCLEH_ADDR 12'hc80
 
-module csr_file (clk, write, wrAddr_CSR, wrVal_CSR, rdAddr_CSR, rdVal_CSR);
+module csr_file (clk, rst_n_i, CSR_wr_en_i, CSR_addr_i, CSR_src_i, CSP_op_i, CSR_rd_o);
 	input clk;
-	input write;
-	input [11:0] wrAddr_CSR;
-	input [31:0] wrVal_CSR;
-	input [11:0] rdAddr_CSR;
-	output reg[31:0] rdVal_CSR;
+	input rst_n_i;
+	input CSR_wr_en_i;
+	input [11:0] CSR_addr_i;
+	input [31:0] CSR_src_i;
+	input [ 3:0] CSP_op_i;
+	output reg[31:0] CSR_rd_o;
 
-	reg [31:0] csr_file [0:2**10-1];
+	reg [63:0] rdcycle_csr_n;
+	reg [63:0] rdcycle_csr_d;
+	reg [63:0] rdcycle_csr_q;
 
-	always @(posedge clk) begin
-		if (write) begin
-			csr_file[wrAddr_CSR] <= wrVal_CSR;
+	reg [31:0] CSR_tmp;
+
+	always @(*) begin
+		rdcycle_csr_n = rdcycle_csr_q; //increment
+
+		case (CSR_addr_i) //CSR select
+			`CSR_RDCYCLEL_ADDR: begin //NOTE: rdcycle is a read-only csr, this deviation from spec just acts as a placeholder for writable CSRs
+				CSR_rd_o = rdcycle_csr_q[31:0];
+				rdcycle_csr_n[31:0] = CSR_tmp;
+			end
+			`CSR_RDCYCLEH_ADDR: begin
+				CSR_rd_o = rdcycle_csr_q[63:32];
+				rdcycle_csr_n[63:32] = CSR_tmp;
+			end
+			default: begin
+				//do nothing
+			end
+		endcase
+
+		case (CSP_op_i) //TODO: could decouple CSR op from ALUCTL and use less bits
+			/*
+			 *	CSRRW  only
+			 */
+			`kSAIL_MICROARCHITECTURE_ALUCTL_3to0_CSRRW:	CSR_tmp = CSR_src_i;
+
+			/*
+			 *	CSRRS only
+			 */
+			`kSAIL_MICROARCHITECTURE_ALUCTL_3to0_CSRRS:	CSR_tmp = CSR_src_i | CSR_rd_o;
+
+			/*
+			 *	CSRRC only
+			 */
+			`kSAIL_MICROARCHITECTURE_ALUCTL_3to0_CSRRC:	CSR_tmp = (~CSR_src_i) & CSR_rd_o;
+
+			default: CSR_tmp = CSR_src_i; //TODO: CSRRW could just be the default
+		endcase
+
+		rdcycle_csr_d = CSR_wr_en_i ? rdcycle_csr_n : rdcycle_csr_q + 64'b1;
+	end
+
+	always @(posedge clk, negedge rst_n_i) begin
+		if (!rst_n_i) begin
+			rdcycle_csr_q <= 64'b0;
 		end
-		rdVal_CSR <= csr_file[rdAddr_CSR];
+		else begin
+			rdcycle_csr_q <= rdcycle_csr_d;
+		end
 	end
 
 endmodule
