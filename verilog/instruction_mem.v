@@ -53,7 +53,7 @@ module instruction_memory(clk, rst_n_i, addr, out);
 	 *
 	 *	(Bad practice: The constant should be a `define).
 	 */
-	reg [31:0]		instruction_memory[0:2**12-1];
+	reg [31:0]		instruction_memory[0:2**10-1];
 
 	/*
 	 *	According to the "iCE40 SPRAM Usage Guide" (TN1314 Version 1.0), page 5:
@@ -73,17 +73,12 @@ module instruction_memory(clk, rst_n_i, addr, out);
 		/*
 		 *	read from "program.hex" and store the instructions in instruction memory
 		 */
-		$readmemh("program.hex",instruction_memory);
+		$readmemh("led.hex",instruction_memory);
 	end
 
 	reg[31:0] instr_word_rd;
-	always @(posedge clk or negedge rst_n_i) begin
-		if (!rst_n_i) begin
-			instr_word_rd <= 32'b0;
-		end
-		else begin
-			instr_word_rd <= instruction_memory[addr >> 2];
-		end
+	always @(posedge clk) begin
+		instr_word_rd <= instruction_memory[addr >> 2];
 	end
 
 	assign out = instr_word_rd;//instruction_memory[addr >> 2];

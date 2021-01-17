@@ -245,7 +245,7 @@ module cpu(
 		);
 
 	assign inst_mux_out = inst_mux_sel ? 32'b0 : inst_mem_out;
-	assign fence_mux_out = Fence_signal ? pc_out : pc_adder_out;
+	assign fence_mux_out = !rst_n_i ? pc_out : pc_adder_out;
 
 	/*
 	 *	IF/ID Pipeline Register
@@ -276,7 +276,7 @@ module cpu(
 			.Jalr(Jalr_id),
 			.Lui(Lui_id),
 			.Auipc(Auipc_id),
-			.Fence(Fence_signal),
+			.Fence(Fence_signal), //TODO Fence signal does nothing useful
 			.CSRR(CSRR_signal_id)
 		);
 

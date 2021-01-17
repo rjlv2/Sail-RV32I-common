@@ -47,10 +47,6 @@ module imm_gen(inst, imm);
 	input [31:0]		inst;
 	output reg [31:0]	imm;
 
-	initial begin
-		imm = 32'b0;
-	end
-
 	always @(inst) begin
 		case ({inst[6:5], inst[3:2]})
 			4'b0000: //I-type

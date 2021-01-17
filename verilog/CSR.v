@@ -42,8 +42,8 @@
  *		This module implements the control and status registers (CSRs).
  */
 
-`include "include/rv32i-defines.v"
-`include "include/sail-core-defines.v"
+`include "../include/rv32i-defines.v"
+`include "../include/sail-core-defines.v"
 
 `define CSR_RDCYCLEL_ADDR 12'hc00 //TODO move these to defines file
 `define CSR_RDCYCLEH_ADDR 12'hc80

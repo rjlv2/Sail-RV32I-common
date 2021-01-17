@@ -60,7 +60,7 @@ module regfile(clk, rst_n_i, data_mem_stall, write, wrAddr, wrData, rdAddrA, rdD
 	 *	register file, 32 x 32-bit registers
 	 */
 	//reg [31:0]	regfile[31:0];
-	reg [31:0]	regfile_d[31:0];
+	//reg [31:0]	regfile_d[31:0];
 	reg [31:0]	regfile_q[31:0];
 
 	/*
@@ -110,7 +110,7 @@ module regfile(clk, rst_n_i, data_mem_stall, write, wrAddr, wrData, rdAddrA, rdD
 	end*/
 
 	// New implementation doesn't infer latches, but consumes a lot more logic elements
-	generate
+	/*generate
 		genvar j;
 		for(j=0; j<32; j=j+1) begin : register_file_d
 			always @(*) begin
@@ -120,24 +120,24 @@ module regfile(clk, rst_n_i, data_mem_stall, write, wrAddr, wrData, rdAddrA, rdD
 				end
 			end
 		end
-	endgenerate
+	endgenerate*/
 
-	generate
+	/*generate
 		genvar i;
 		for(i=0; i<32; i=i+1) begin : register_file
 			always @(posedge clk or negedge rst_n_i) begin
 				if (!rst_n_i) begin
-					regfile_q[i] <= 32'b0;
+					regfile_q[0] <= 32'b0;
 				end
-				else begin
-					regfile_q[i] <= regfile_d[i];
+				else if (write==1'b1 && wrAddr!=5'b0 && wrAddr == i) begin
+					regfile_q[i] <= wrData;
 				end
 			end
 		end
-	endgenerate
+	endgenerate*/
 			
 
-	always @(posedge clk or negedge rst_n_i) begin
+	/*always @(posedge clk or negedge rst_n_i) begin
 		if (!rst_n_i) begin
 			wrAddr_buf	<= 5'b0;
 			write_buf	<= 1'b0;
@@ -146,6 +146,7 @@ module regfile(clk, rst_n_i, data_mem_stall, write, wrAddr, wrData, rdAddrA, rdD
 			rdAddrB_buf	<= 5'b0;
 			regDatA		<= 32'b0;
 			regDatB		<= 32'b0;
+			//regfile_q[0] <= 32'b0; //reset 0
 		end
 		else begin
 			wrAddr_buf	<= wrAddr;
@@ -153,11 +154,38 @@ module regfile(clk, rst_n_i, data_mem_stall, write, wrAddr, wrData, rdAddrA, rdD
 			wrData_buf	<= wrData;
 			rdAddrA_buf	<= data_mem_stall ? rdAddrA_buf : rdAddrA;
 			rdAddrB_buf	<= data_mem_stall ? rdAddrB_buf : rdAddrB;
-			regDatA		<= data_mem_stall ? regDatA : regfile_q[rdAddrA];
-			regDatB		<= data_mem_stall ? regDatB : regfile_q[rdAddrB];
+			regDatA		<= data_mem_stall ? regDatA : |rdAddrA ? regfile_q[rdAddrA] : 32'b0;
+			regDatB		<= data_mem_stall ? regDatB : |rdAddrB ? regfile_q[rdAddrB] : 32'b0;
 		end
 	end
 
-	assign	rdDataA = ((wrAddr_buf==rdAddrA_buf) & write_buf & wrAddr_buf!=32'b0) ? wrData_buf : regDatA;
-	assign	rdDataB = ((wrAddr_buf==rdAddrB_buf) & write_buf & wrAddr_buf!=32'b0) ? wrData_buf : regDatB;
+	always @(posedge clk) begin
+		if(write==1'b1 && wrAddr!=5'b0) begin
+			regfile_q[wrAddr] <= wrData;
+		end
+	end*/
+
+	reg [31:0]	regfile[31:0];
+	reg [31:0]  rdDataA_q;
+	reg [31:0]  rdDataB_q;
+	reg data_mem_stall_q;
+
+	always @(posedge clk) begin
+		if(write==1'b1 && wrAddr!=5'b0) begin
+			regfile[wrAddr] <= wrData;
+		end
+		wrAddr_buf <= wrAddr;
+		write_buf <= write;
+		wrData_buf <= wrData;
+		rdAddrA_buf <= rdAddrA;
+		rdAddrB_buf <= rdAddrB;
+		regDatA <= regfile[rdAddrA];
+		regDatB <= regfile[rdAddrB];
+		rdDataA_q <= rdDataA;
+		rdDataB_q <= rdDataB;
+		data_mem_stall_q <= data_mem_stall;
+	end
+
+	assign	rdDataA = data_mem_stall_q ? rdDataA_q : ((wrAddr_buf==rdAddrA_buf) & write_buf & wrAddr_buf!=32'b0) ? wrData_buf : regDatA;
+	assign	rdDataB = data_mem_stall_q ? rdDataB_q : ((wrAddr_buf==rdAddrB_buf) & write_buf & wrAddr_buf!=32'b0) ? wrData_buf : regDatB;
 endmodule
