@@ -16,7 +16,6 @@ module ext_if_reg_wrapper(
 	input[7:0] rx_buf_wr_data_i,
 	output rx_buffer_full_o,
 	output rx_buffer_empty_o,
-	//output[7:0] rx_write_ptr_o,
 	
 	//external led
 	output [7:0] led_o
@@ -28,7 +27,7 @@ module ext_if_reg_wrapper(
 		Reads from 0x0 will return value in buffer pointed to by rx_read_ptr, writes do nothing, reads from empty buffer return 0xdeadbeef
 		Reads from 0x4 will return status of rx_buffer, bits {0: rx buffer is empty, 1: rx buffer is full}, writes here do nothing
 		Writes to 0x8 will write bits [7:0] of wdata_i to the tx buffer location pointed to by tx_wr_ptr, if it's full then the write will be discarded, reads from here will return deadbeef
-		Reads from 0x4 will return status of tx_buffer, bits {0: rx buffer is empty, 1: rx buffer is full}, writes here do nothing
+		Reads from 0xc will return status of tx_buffer, bits {0: rx buffer is empty, 1: rx buffer is full}, writes here do nothing
 		Writes to 0x10 will write bits [7:0] of wdata_i to the led register, which is connected to external output pins, reads from here will read the zero-padded 8-bit content of the register
 */
 wire addr_is_rx_buf;
@@ -48,18 +47,16 @@ assign addr_is_led_o  = (addr_i[10:0] == 11'h10); //external led output, modify 
 reg[7:0] rx_buffer [7:0]; //TODO replace magic numbers
 
 //these pointers are hidden to the program, the value of the byte pointed to by the read pointer is exposed through a register
-reg[3:0] rx_read_ptr; //use 128 byte buffer, 1 extra bit is used for keeping track 
-reg[3:0] rx_write_ptr; //actual index into buffer is [6:0]
+reg[3:0] rx_read_ptr; //use 8 byte buffer, 1 extra bit is used for keeping track of circular buffer
+reg[3:0] rx_write_ptr; //actual index into buffer is [2:0]
 
-//assign rx_write_ptr_o = rx_write_ptr;
-
-assign rx_buffer_full_o  = (rx_read_ptr[2:0] == rx_write_ptr[2:0]) && (rx_read_ptr[3] ^ rx_write_ptr[3]);
+assign rx_buffer_full_o  = (rx_read_ptr[2:0] == rx_write_ptr[2:0]) && (rx_read_ptr[3] ^ rx_write_ptr[3]); //top bit keeps track of circular buffer
 assign rx_buffer_empty_o = (rx_read_ptr == rx_write_ptr);
 
 wire valid_rx_buf_read;
 wire valid_rx_buf_write;
 assign valid_rx_buf_read  = addr_is_rx_buf && mem_read_i && !rx_buffer_empty_o;
-assign valid_rx_buf_write = rx_buf_write_i && !rx_buffer_full_o;
+assign valid_rx_buf_write = rx_buf_write_i && !rx_buffer_full_o; //data is dropped when it's full
 
 reg[3:0] rx_read_ptr_n;
 reg[3:0] rx_write_ptr_n;
@@ -77,7 +74,7 @@ always @(posedge clk, negedge rst_n_i) begin
 	else begin
 		rx_read_ptr  <= rx_read_ptr_n;
 		rx_write_ptr <= rx_write_ptr_n;
-		if(valid_rx_buf_read) begin //TODO: check what logic this infers
+		if(valid_rx_buf_read) begin
 			rx_read_val <= {24'b0, rx_buffer[rx_read_ptr]}; //only read out value if valid read
 		end
 		if(valid_rx_buf_write) begin

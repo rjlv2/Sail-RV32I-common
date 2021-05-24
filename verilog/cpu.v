@@ -164,10 +164,6 @@ module cpu(
 	wire [31:0]		regA_out;
 	wire [31:0]		regB_out;
 	wire [31:0]		imm_out;
-	//wire [31:0]		RegA_mux_out;
-	//wire [31:0]		RegB_mux_out;
-	//wire [ 4:0]		RegA_AddrFwdFlush_mux_out;
-	//wire [31:0]		RegB_AddrFwdFlush_mux_out;
 	wire [ 4:0]		rs1_addr_id;
 	wire [ 4:0]		rs2_addr_id;
 	wire [31:0]		rdValOut_CSR;
@@ -540,7 +536,7 @@ module cpu(
 	assign mem_fwd2_mux_out = mfwd2 ? dataMemOut_fwd_mux_out : RegB_val_ex;
 	assign wb_fwd1_mux_out = wfwd1 ? wb_mux_out : mem_fwd1_mux_out;
 	assign wb_fwd2_mux_out = wfwd2 ? wb_mux_out : mem_fwd2_mux_out;
-	assign dataMemOut_fwd_mux_out = MemtoReg_m0 ? data_mem_out : alu_result_m0; //TODO: Forwarding data_mem to execute stage might put pressure on timing, forwarding from wb stage might be better
+	assign dataMemOut_fwd_mux_out = MemtoReg_m0 ? data_mem_out : alu_result_m0;
 
 	//Branch Predictor
 	branch_predictor branch_predictor_FSM(

@@ -59,9 +59,7 @@ module regfile(clk, rst_n_i, data_mem_stall, write, wrAddr, wrData, rdAddrA, rdD
 	/*
 	 *	register file, 32 x 32-bit registers
 	 */
-	//reg [31:0]	regfile[31:0];
-	//reg [31:0]	regfile_d[31:0];
-	reg [31:0]	regfile_q[31:0];
+	reg [31:0]	regfile[31:0];
 
 	/*
 	 *	buffer to store address at each positive clock edge
@@ -79,93 +77,8 @@ module regfile(clk, rst_n_i, data_mem_stall, write, wrAddr, wrData, rdAddrA, rdD
 	reg		write_buf;
 
 	/*
-	 *	The `initial` statement below uses Yosys's support for nonzero
-	 *	initial values:
-	 *
-	 *		https://github.com/YosysHQ/yosys/commit/0793f1b196df536975a044a4ce53025c81d00c7f
-	 *
-	 *	Rather than using this simulation construct (`initial`),
-	 *	the design should instead use a reset signal going to
-	 *	modules in the design and to thereby set the values.
+	 *	signals for stall control
 	 */
-
-	/*
-	 *	Sets register 0 to 0
-	 */
-	/*initial begin
-		regfile[0] = 32'b0;
-	end
-
-	always @(posedge clk) begin
-		if (write==1'b1 && wrAddr!=5'b0) begin
-			regfile[wrAddr] <= wrData;
-		end
-		wrAddr_buf	<= wrAddr;
-		write_buf	<= write;
-		wrData_buf	<= wrData;
-		rdAddrA_buf	<= rdAddrA;
-		rdAddrB_buf	<= rdAddrB;
-		regDatA		<= regfile[rdAddrA];
-		regDatB		<= regfile[rdAddrB];
-	end*/
-
-	// New implementation doesn't infer latches, but consumes a lot more logic elements
-	/*generate
-		genvar j;
-		for(j=0; j<32; j=j+1) begin : register_file_d
-			always @(*) begin
-				regfile_d[j] = regfile_q[j];
-				if (write==1'b1 && wrAddr!=5'b0 && wrAddr == j) begin
-					regfile_d[j] = wrData;
-				end
-			end
-		end
-	endgenerate*/
-
-	/*generate
-		genvar i;
-		for(i=0; i<32; i=i+1) begin : register_file
-			always @(posedge clk or negedge rst_n_i) begin
-				if (!rst_n_i) begin
-					regfile_q[0] <= 32'b0;
-				end
-				else if (write==1'b1 && wrAddr!=5'b0 && wrAddr == i) begin
-					regfile_q[i] <= wrData;
-				end
-			end
-		end
-	endgenerate*/
-			
-
-	/*always @(posedge clk or negedge rst_n_i) begin
-		if (!rst_n_i) begin
-			wrAddr_buf	<= 5'b0;
-			write_buf	<= 1'b0;
-			wrData_buf	<= 32'b0;
-			rdAddrA_buf	<= 5'b0;
-			rdAddrB_buf	<= 5'b0;
-			regDatA		<= 32'b0;
-			regDatB		<= 32'b0;
-			//regfile_q[0] <= 32'b0; //reset 0
-		end
-		else begin
-			wrAddr_buf	<= wrAddr;
-			write_buf	<= write;
-			wrData_buf	<= wrData;
-			rdAddrA_buf	<= data_mem_stall ? rdAddrA_buf : rdAddrA;
-			rdAddrB_buf	<= data_mem_stall ? rdAddrB_buf : rdAddrB;
-			regDatA		<= data_mem_stall ? regDatA : |rdAddrA ? regfile_q[rdAddrA] : 32'b0;
-			regDatB		<= data_mem_stall ? regDatB : |rdAddrB ? regfile_q[rdAddrB] : 32'b0;
-		end
-	end
-
-	always @(posedge clk) begin
-		if(write==1'b1 && wrAddr!=5'b0) begin
-			regfile_q[wrAddr] <= wrData;
-		end
-	end*/
-
-	reg [31:0]	regfile[31:0];
 	reg [31:0]  rdDataA_q;
 	reg [31:0]  rdDataB_q;
 	reg data_mem_stall_q;
